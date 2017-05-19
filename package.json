@@ -1,0 +1,21 @@
+{
+  "name": "privalia-code-challenge-2017",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel --presets env -d lib/ src/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://komono@bitbucket.org/komono/privalia-code-challenge-2017.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/komono/privalia-code-challenge-2017#readme",
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-preset-env": "^1.4.0"
+  }
+}
