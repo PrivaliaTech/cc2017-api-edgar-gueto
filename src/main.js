@@ -44,7 +44,17 @@ function _onMove(req, res, next) {
   res.send(response);
 }
 
+function _onHome(req, res, next) {
+  res.status(200);
+  res.contentType = 'json';
 
+  const response = {
+    hello: "This is an API for Privalia Code Challenge 2017, by egueto"
+  };
+  res.send(response); 
+}
+
+server.get('/', _onHome);
 server.get('/name', _onName);
 server.post('/name', _onName);
 server.post('/move', _onMove);
