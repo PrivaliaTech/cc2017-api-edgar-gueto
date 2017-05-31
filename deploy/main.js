@@ -1,33 +1,32 @@
-const BROWSER_MODE = false;
+'use strict';
 
+var BROWSER_MODE = false;
 
-const restify = require('restify');
-const mazeBot = require('./mazeBot');
+var restify = require('restify');
+var mazeBot = require('./mazeBot');
 
-const server = restify.createServer();
+var server = restify.createServer();
 server.use(restify.bodyParser());
-
 
 function _onName(req, res, next) {
   res.status(200);
   res.contentType = 'json';
 
-  const name = "egueto-" + (new Date()).getTime();
-  const response = {
+  var name = "egueto-" + new Date().getTime();
+  var response = {
     name: name,
     email: "edgar.gueto@ext.privalia.com"
   };
   res.send(response);
 }
 
-
 function _onMove(req, res, next) {
   res.status(200);
   res.contentType = 'json';
 
-  let moveResult = "right";
+  var moveResult = "right";
   try {
-    const params = req.body || {};
+    var params = req.body || {};
 
     params.game = params.game || {};
     params.player = params.player || {};
@@ -35,15 +34,14 @@ function _onMove(req, res, next) {
     params.ghosts = params.ghosts || {};
 
     moveResult = mazeBot.processNextMovement(params);
-  } catch(e) {
+  } catch (e) {
     console.error("EXCEPTION", e);
   }
-  const response = {
+  var response = {
     move: moveResult
   };
   res.send(response);
 }
-
 
 server.get('/name', _onName);
 server.post('/name', _onName);
