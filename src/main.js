@@ -1,6 +1,3 @@
-const BROWSER_MODE = false;
-
-
 const restify = require('restify');
 const mazeBot = require('./mazeBot');
 
@@ -49,7 +46,7 @@ function _onHome(req, res, next) {
   res.contentType = 'json';
 
   const response = {
-    hello: "This is an API for Privalia Code Challenge 2017, by egueto"
+    hello: "This is an API for Privalia Code Challenge 2017 - egueto"
   };
   res.send(response); 
 }
