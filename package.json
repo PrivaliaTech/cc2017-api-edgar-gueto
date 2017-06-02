@@ -5,8 +5,9 @@
   "main": "deploy/main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "babel --presets env -d lib/ src/",
-    "start": "babel --presets env -d deploy/ src/"
+    "build": "babel --presets env -d deploy/ src/",
+    "deploy": "gcloud deploy/main.js deploy",
+    "start": "node deploy/main.js"
   },
   "repository": {
     "type": "git",
