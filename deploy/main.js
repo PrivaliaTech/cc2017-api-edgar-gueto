@@ -1,7 +1,5 @@
 'use strict';
 
-var BROWSER_MODE = false;
-
 var restify = require('restify');
 var mazeBot = require('./mazeBot');
 
@@ -12,7 +10,7 @@ function _onName(req, res, next) {
   res.status(200);
   res.contentType = 'json';
 
-  var name = "egueto-" + new Date().getTime();
+  var name = "egueto-ext"; // + (new Date()).getTime();
   var response = {
     name: name,
     email: "edgar.gueto@ext.privalia.com"
@@ -48,14 +46,39 @@ function _onHome(req, res, next) {
   res.contentType = 'json';
 
   var response = {
-    hello: "This is an API for Privalia Code Challenge 2017, by egueto"
+    hello: "This is an API for Privalia Code Challenge 2017 - egueto"
   };
   res.send(response);
 }
 
+// Enable CORS
+server.use(function crossOrigin(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  return next();
+});
+
+// Discovery API
 server.get('/', _onHome);
+
+// Challenge API
 server.get('/name', _onName);
 server.post('/name', _onName);
 server.post('/move', _onMove);
 
+// Debug API
+var debugAPI = require('./debugAPI');
+server.get('/games', debugAPI.onGetGames);
+
+//var io = require('socket.io')(http);
+var socketio = require('socket.io');
+var io = socketio.listen(server);
+io.sockets.on('connection', function (socket) {
+  socket.emit('news', { hello: 'world' });
+  socket.on('my other event', function (data) {
+    console.log(data);
+  });
+});
+
+// Finally, start the server
 server.listen(8080, function () {});

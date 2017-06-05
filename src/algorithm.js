@@ -27,7 +27,7 @@ function _generateNewContext(playerId) {
       return this.matrix[idx] === this.VISITED;
     },
     initialize: function initialize(maze, playerPos) {
-      if (!_explored.initialized) {
+      if (!maze.initialized) {
         this.width = maze.width;
         this.height = maze.height;
         this.visit(playerPos.x, playerPos.y);

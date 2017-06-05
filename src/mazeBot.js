@@ -1,12 +1,24 @@
 const algorithm = require('./algorithm');
 
 const _players = {};
+let _playersCount = 0;
 
 function _getPlayer(playerId) {
   if (!_players[playerId]) {
      _players[playerId] = _newPlayer(playerId);
   }
   return _players[playerId];
+}
+
+function _getTime() {
+  var d = new Date();
+  var datestring = d.getDate()  + "-" + (d.getMonth()+1) + "-" + d.getFullYear() + " " +
+  d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds();
+
+  return {
+    date: (d.getDate()  + "-" + (d.getMonth()+1) + "-" + d.getFullYear()),
+    hour: (d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds())
+  };
 }
 
 function _newPlayer(playerId) {
@@ -22,8 +34,11 @@ function _newPlayer(playerId) {
       ymin: 0,
       ymax: 0
     },
-    maze: _newMaze()
+    maze: _newMaze(),
+    index: ++_playersCount,
+    time: _getTime()
   };
+
 
   return player;
 }
@@ -82,8 +97,38 @@ function _newMaze() {
         }
         console.log(row);
       }
+    },
+    cloneMatrix: function () {
+      return this.matrix.slice(0);
+    },
+    evalExplored: function() {
+      let count = 0,
+        i = 0,
+        n = Array.isArray(this.matrix) ? this.matrix.length : 0;
+
+      for (; i < n; i++) {
+        if (this.matrix[i]) {
+          count++;
+        }
+      }
+
+      return n ? ((100 * count) / n).toFixed(2) : 0;
     }
   };
+}
+
+/**
+ * @desc Deep copy the maze in order to return in a GET call, to avoid returning a maze
+ *  that could be mid-updated by other process.
+ */
+function _cloneMaze(maze) {
+  const copyMaze = {
+    initialized: maze.initialized,
+    width: maze.width,
+    height: maze.height,
+    matrix: maze.cloneMatrix()
+  };
+  return copyMaze;
 }
 
 function _updatePlayer(jsonPlayer) {
@@ -114,7 +159,12 @@ function _updateMaze(playerId, maze) {
       y: maze.goal.y
     };
 
-    playerMaze.matrix = []
+    playerMaze.matrix = [];
+
+    let size = playerMaze.width * playerMaze.height;
+    while(size--) {
+      playerMaze.matrix[size] = 0;
+    }
   }
 
   // Update walls:
@@ -152,3 +202,46 @@ function _processNextMovement(curStatus) {
 }
 
 exports.processNextMovement = _processNextMovement;
+
+// ----------- DEBUG API -------------------
+
+
+exports.getGames = function () {
+  const games = [];
+  
+  for (let playerId in _players) {
+    const player = _players[playerId],
+      gameState = 'running',
+      explored = player ? player.maze.evalExplored() : 0;
+
+    games.push({
+      id: player.id,
+      state: gameState,
+      explored: explored,
+      index: player.index,
+      date: player.time
+    });
+  }
+
+  return games;
+};
+
+exports.getGame = function (playerId) {
+  const player = _players[playerId],
+    gameState = 'running',
+    explored = player ? player.maze.evalExplored() : 0;
+
+  if (player) {
+    return {
+      id: player.id,
+      state: gameState,
+      explored: explored,
+      position: player.position,
+      maze: _cloneMaze(player.maze),
+      index: player.index,
+      date: player.time
+    };
+  }
+
+  return {};
+};
