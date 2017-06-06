@@ -36,7 +36,8 @@ function _newPlayer(playerId) {
     },
     maze: _newMaze(),
     index: ++_playersCount,
-    time: _getTime()
+    time: _getTime(),
+    steps: 0
   };
 
 
@@ -45,6 +46,18 @@ function _newPlayer(playerId) {
 
 
 function _newMaze() {
+
+  // const CELL_VALUES = {
+  //   0: 'unknown',
+  //   1: 'wall',
+  //   2: 'ghost',
+  //   3: 'neutralGhost',
+  //   4: 'goal',
+  //   5: 'start',
+  //   6: 'void',
+  //   7: 'player'
+  // };
+
   return {
     initialized: false,
     width: 0,
@@ -53,6 +66,35 @@ function _newMaze() {
 
     WALL: 1,
     GHOST: 2,
+    //NEUTRAL_GHOST: 3,
+    GOAL: 4,
+    START: 5,
+    VOID: 6,
+    PLAYER: 7,
+
+    init: function (jsonMaze, playerPos) {
+      this.initialized = true;
+      this.width = jsonMaze.size.width;
+      this.height = jsonMaze.size.height;
+      this.goal = {
+        x: jsonMaze.goal.x,
+        y: jsonMaze.goal.y
+      };
+      this.start = {
+        x: playerPos.x,
+        y: playerPos.y
+      };
+
+      this.matrix = [];
+
+      let size = this.width * this.height;
+      while(size--) {
+        this.matrix[size] = 0;
+      }
+
+      this._setValue(this.goal.x, this.goal.y, this.GOAL);
+      this._setValue(playerPos.x, playerPos.y, this.START);
+    },
 
     _setValue: function _setValue(x, y, v) {
       const idx = x + this.width * y;
@@ -61,6 +103,10 @@ function _newMaze() {
     _isValue: function _isValue(x, y, v) {
       const idx = x + this.width * y;
       return this.matrix[idx] === v;
+    },
+    getAt: function (x, y) {
+      const idx = x + this.width * y;
+      return this.matrix[idx];
     },
 
     setWall: function setWall(x, y) {
@@ -145,32 +191,29 @@ function _updatePlayer(jsonPlayer) {
     ymax: jsonPlayer.area.y2
   }
 }
-function _updateMaze(playerId, maze) {
+function _updateMaze(playerId, jsonMaze) {
 
   const player = _getPlayer(playerId),
     playerMaze = player.maze;
 
   if (!playerMaze.initialized) {
-    playerMaze.initialized = true;
-    playerMaze.width = maze.size.width;
-    playerMaze.height = maze.size.height;
-    playerMaze.goal = {
-      x: maze.goal.x,
-      y: maze.goal.y
-    };
-
-    playerMaze.matrix = [];
-
-    let size = playerMaze.width * playerMaze.height;
-    while(size--) {
-      playerMaze.matrix[size] = 0;
-    }
+    playerMaze.init(jsonMaze, player.position);
   }
 
   // Update walls:
-  maze.walls.forEach(function (wall) {
+  jsonMaze.walls.forEach(function (wall) {
     playerMaze.setWall(wall.x, wall.y);
   });
+
+  // Update known area
+  for (let col = player.area.xmin; col <= player.area.xmax; col++) {
+    for (let row = player.area.ymin; row <= player.area.ymax; row++) {
+      let v = playerMaze.getAt(col, row);
+      if (v === 0) {
+        playerMaze._setValue(col, row, playerMaze.VOID);
+      }
+    }
+  }
 }
 
 function _updateGhosts(playerId, ghosts) {
@@ -195,9 +238,9 @@ function _processNextMovement(curStatus) {
   _updateGhosts(playerId, curStatus.ghosts);
 
   const player = _getPlayer(playerId);
-  //player.maze.print();
 
   let nextMovement = algorithm.calcNextMovement(playerId, player.maze, player.position);
+  player.steps++;
   return nextMovement;
 }
 
@@ -239,7 +282,8 @@ exports.getGame = function (playerId) {
       position: player.position,
       maze: _cloneMaze(player.maze),
       index: player.index,
-      date: player.time
+      date: player.time,
+      steps: player.steps
     };
   }
 

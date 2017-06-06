@@ -4,6 +4,7 @@ var restify = require('restify');
 var mazeBot = require('./mazeBot');
 
 var server = restify.createServer();
+
 server.use(restify.bodyParser());
 
 function _onName(req, res, next) {
@@ -69,16 +70,20 @@ server.post('/move', _onMove);
 // Debug API
 var debugAPI = require('./debugAPI');
 server.get('/games', debugAPI.onGetGames);
+server.get('/game/:gameId', debugAPI.onGetGame);
+// var server2 = require("net").createServer();
+// var io = require("socket.io")(server2);
 
-//var io = require('socket.io')(http);
-var socketio = require('socket.io');
-var io = socketio.listen(server);
-io.sockets.on('connection', function (socket) {
-  socket.emit('news', { hello: 'world' });
-  socket.on('my other event', function (data) {
-    console.log(data);
-  });
-});
+// var handleClient = function (socket) {
+//   console.log("socket::connection");
+//     // we've got a client connection
+//     socket.emit("tweet", {user: "nodesource", text: "Hello, world!"});
+// };
+
+// io.on("connection", handleClient);
+
+// server2.listen(9090);
+
 
 // Finally, start the server
 server.listen(8080, function () {});
