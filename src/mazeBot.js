@@ -62,6 +62,7 @@ function _newMaze() {
     initialized: false,
     width: 0,
     height: 0,
+    size: 0,
     matrix: [],
 
     WALL: 1,
@@ -77,6 +78,7 @@ function _newMaze() {
       this.initialized = true;
       this.width = jsonMaze.size.width;
       this.height = jsonMaze.size.height;
+      this.size = this.width * this.height;
       this.goal = {
         x: jsonMaze.goal.x,
         y: jsonMaze.goal.y
@@ -250,7 +252,7 @@ function _processNextMovement(curStatus) {
 
   const player = _getPlayer(playerId);
 
-  let nextMovement = algorithm.calcNextMovement(playerId, player.maze, player.position);
+  let nextMovement = algorithm.calcNextMovement(playerId, player.maze, player.position, player.steps);
   player.steps++;
 
 

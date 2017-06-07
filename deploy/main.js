@@ -71,19 +71,6 @@ server.post('/move', _onMove);
 var debugAPI = require('./debugAPI');
 server.get('/games', debugAPI.onGetGames);
 server.get('/game/:gameId', debugAPI.onGetGame);
-// var server2 = require("net").createServer();
-// var io = require("socket.io")(server2);
-
-// var handleClient = function (socket) {
-//   console.log("socket::connection");
-//     // we've got a client connection
-//     socket.emit("tweet", {user: "nodesource", text: "Hello, world!"});
-// };
-
-// io.on("connection", handleClient);
-
-// server2.listen(9090);
-
 
 // Finally, start the server
 server.listen(8080, function () {});
