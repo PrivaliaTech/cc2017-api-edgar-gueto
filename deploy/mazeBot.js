@@ -70,6 +70,7 @@ function _newMaze() {
     START: 5,
     VOID: 6,
     PLAYER: 7,
+    VISITED: 8,
 
     init: function init(jsonMaze, playerPos) {
       this.initialized = true;
@@ -183,6 +184,10 @@ function _updatePlayer(jsonPlayer) {
     x: jsonPlayer.position.x,
     y: jsonPlayer.position.y
   };
+  player.prevPosition = {
+    x: jsonPlayer.previous.x,
+    y: jsonPlayer.previous.y
+  };
   player.area = {
     xmin: jsonPlayer.area.x1,
     xmax: jsonPlayer.area.x2,
@@ -213,6 +218,12 @@ function _updateMaze(playerId, jsonMaze) {
       }
     }
   }
+
+  // Update player pos:
+  if (player.prevPosition && player.prevPosition !== undefined) {
+    playerMaze._setValue(player.prevPosition.x, player.prevPosition.y, playerMaze.VISITED);
+  }
+  playerMaze._setValue(player.position.x, player.position.y, playerMaze.PLAYER);
 }
 
 function _updateGhosts(playerId, ghosts) {
@@ -240,6 +251,9 @@ function _processNextMovement(curStatus) {
 
   var nextMovement = algorithm.calcNextMovement(playerId, player.maze, player.position);
   player.steps++;
+
+  console.log("MOVE: ", nextMovement);
+
   return nextMovement;
 }
 
