@@ -9,6 +9,7 @@ function _getPlayerContext(playerId) {
 
 function _generateNewContext(playerId) {
   return {
+    resistenceMatrix: [],
     matrix: [],
     initialized: false,
     width: 0,
@@ -17,7 +18,13 @@ function _generateNewContext(playerId) {
 
     visit: function visit(x, y) {
       const idx = x + this.width * y;
-      this.matrix[idx] = this.VISITED;    
+      this.matrix[idx] = this.VISITED;
+
+      if (this.resistenceMatrix[idx]) {
+        this.resistenceMatrix[idx]++;
+      } else {
+        this.resistenceMatrix[idx] = 1;
+      }
     },
     visited: function visited(x, y) {
       if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
@@ -25,6 +32,13 @@ function _generateNewContext(playerId) {
       }
       const idx = x + this.width * y;
       return this.matrix[idx] === this.VISITED;
+    },
+    getResistance: function getResistance(x, y) {
+      if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+        return 9999999;
+      }
+      const idx = x + this.width * y;
+      return this.resistenceMatrix[idx] === undefined ? 0 : this.resistenceMatrix[idx];
     },
     initialize: function initialize(maze, playerPos) {
       if (!maze.initialized) {
@@ -113,11 +127,36 @@ function _basicInspect(context, maze, playerPos) {
   };
 }
 
-function _basicPositionEval(context, maze, position) {
+function _basicPositionEval(context, maze, nextPosition) {
+  // return {
+  //   wall: maze.isWall(nextPosition.x, nextPosition.y),
+  //   ghost: maze.isGhost(nextPosition.x, nextPosition.y),
+  //   explored: context.visited(nextPosition.x, nextPosition.y)
+  // };
+
+  let valid = true;
+
+  if (maze.isWall(nextPosition.x, nextPosition.y)) {
+    valid = false;
+  } else if (maze.isGhost(nextPosition.x, nextPosition.y)) {
+    valid = false;
+  } else {
+    // Check if there are ghosts at diagonals/adjacents
+    const ghostPresence = maze.isGhost(nextPosition.x - 1, nextPosition.y) ||
+      maze.isGhost(nextPosition.x, nextPosition.y - 1) ||
+      maze.isGhost(nextPosition.x + 1, nextPosition.y) ||
+      maze.isGhost(nextPosition.x, nextPosition.y + 1);
+
+    if (ghostPresence) {
+      valid = false;
+    }
+  }
+
+  let resistance = context.getResistance(nextPosition.x, nextPosition.y);
+
   return {
-    wall: maze.isWall(position.x, position.y),
-    ghost: maze.isGhost(position.x, position.y),
-    explored: context.visited(position.x, position.y)
+    valid: valid,
+    resistance: resistance
   };
 }
 
