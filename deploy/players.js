@@ -23,7 +23,18 @@ var mazes = require('./maze');
     this.index = ++_playersCount;
     this.time = _getTime();
     this.steps = 0;
+    this._alreadyVisited = 0;
   }
+
+  Player.prototype.addAlreadyVisited = function () {
+    this._alreadyVisited++;
+  };
+  Player.prototype.getAlreadyVisited = function () {
+    return this._alreadyVisited;
+  };
+  Player.prototype.resetAlreadyVisited = function () {
+    this._alreadyVisited = 0;
+  };
 
   /**
    * @desc Returns a player from its id
@@ -104,13 +115,13 @@ var mazes = require('./maze');
     if (player) {
       return {
         id: player.id,
+        steps: player.steps,
         state: gameState,
+        index: player.index,
         explored: explored,
         position: player.position,
-        maze: player.maze.cloneMaze(),
-        index: player.index,
         date: player.time,
-        steps: player.steps
+        maze: player.maze.cloneMaze()
       };
     }
 

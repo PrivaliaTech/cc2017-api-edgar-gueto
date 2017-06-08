@@ -32,6 +32,7 @@
     };
 
     this.matrix = [];
+    this._prevToGhost = {};
 
     let size = this.width * this.height;
     while(size--) {
@@ -40,6 +41,27 @@
 
     this._setValue(this.goal.x, this.goal.y, this.GOAL);
     this._setValue(playerPos.x, playerPos.y, this.START);
+  };
+
+  Maze.prototype.getCoords = function getCoords(idx) {
+    //const idx = x + this.width * y;
+
+    let y = Math.floor(idx / this.width),
+      x = idx - this.width * y;
+
+    return {
+      x: x,
+      y: y
+    };
+  };
+
+  Maze.prototype.getIdx = function getIdx(x, y) {
+    const idx = x + this.width * y;
+
+    if (0 <= idx && idx < this.size) {
+      return idx;
+    }
+    return undefined;
   };
 
 
@@ -68,6 +90,13 @@
     }
     return this._isValue(x, y, this.WALL);
   };
+  Maze.prototype.isExit = function isExit(x, y) {
+    if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
+      return true;
+    }
+    return this._isValue(x, y, this.GOAL);
+  };
+
 
   Maze.prototype.setVoid = function setVoid(x, y) {
     this._setValue(x, y, this.VOID);
@@ -75,11 +104,13 @@
   Maze.prototype.setVisited = function setVisited(x, y) {
     this._setValue(x, y, this.VISITED);
   };
-  Maze.prototype.setPlayerCell = function setPlayerCell(x, y) {
+  Maze.prototype.setPlayerCell = function setPlayerCell(x, y) {    
     this._setValue(x, y, this.PLAYER);
   };
 
   Maze.prototype.setGhost = function setGhost(x, y) {
+    const idx = x + this.width * y;
+    this._prevToGhost[idx] = this.getAt(x, y);
     this._setValue(x, y, this.GHOST);
   };
 
@@ -93,7 +124,7 @@
   Maze.prototype.removeGhosts = function removeGhosts() {
     for (let i = 0, n = this.matrix.length; i < n; i++) {
       if (this.matrix[i] === this.GHOST) {
-        this.matrix[i] = 0;
+        this.matrix[i] = this._prevToGhost[i];
       }
     }
   };

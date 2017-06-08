@@ -1,19 +1,75 @@
-"use strict";
+'use strict';
 
-var _contexts = {};
+var contextMgr = require('./context');
+var config = require('../config.json');
 
-function _getPlayerContext(playerId) {
-  if (!_contexts[playerId]) {
-    _contexts[playerId] = _generateNewContext(playerId);
+var MOV_VALID = 1;
+var MOV_LESS_VALID = 2;
+var TO_LEFT = "left";
+var TO_RIGHT = "right";
+var TO_TOP = "up";
+var TO_BOTTOM = "down";
+
+function _calcNextMovement(playerId, maze, playerPos, steps, player) {
+  var randMovs = [TO_LEFT, TO_RIGHT, TO_TOP, TO_BOTTOM];
+
+  // Default mov
+  var nextMov = randMovs[Math.floor(3.99 * Math.random())];
+
+  var context = contextMgr.getContext(playerId);
+  try {
+
+    // Initialize the context
+    context.initialize(maze, playerPos);
+
+    // Precalculate next positions, four possible movements
+    var movements = _createAllMovements(playerPos);
+
+    // 0. Exit?
+    var exitMove = _getExit(movements, context, maze);
+    if (exitMove) {
+      nextMov = exitMove;
+    } else {
+      // 1. Avoid silly movements
+      _avoidWalls(movements, context, maze);
+
+      // 2. Survive, so avoid ghosts
+      _avoidGhostMovs(movements, context, maze);
+
+      _propagateResistance(context.resistanceMatrix, maze);
+
+      // 3. Evaluate the most promising next movement
+      _evalRemainingMovs(movements, context, maze, playerPos);
+
+      if (movements.length) {
+        nextMov = _getMostPromising(movements, context, steps);
+      } else {
+        context.addLog({
+          nextMov: nextMov,
+          how: 'Default, ghost threads in all movs',
+          steps: steps
+        });
+      }
+    }
+  } catch (e) {
+    context.addLog({
+      nextMov: nextMov,
+      how: 'EXCEPTION: ' + e.message,
+      steps: steps
+    });
   }
-  return _contexts[playerId];
+
+  // Updates
+  context.explore(playerPos, _directionToVector(nextMov), nextMov);
+
+  return nextMov;
 }
 
-function _flushDebugInfo(playerId) {
-  var context = _getPlayerContext(playerId),
-      logs = context.logs.slice(0);
+exports.calcNextMovement = _calcNextMovement;
 
-  console.log("_flushDebugInfo::log", context.logs);
+function _flushDebugInfo(playerId) {
+  var context = contextMgr.getContext(playerId),
+      logs = context.logs.slice(0);
 
   // reset log
   context.logs = [];
@@ -23,128 +79,6 @@ function _flushDebugInfo(playerId) {
     resistMatrix: context.resistanceMatrix.slice(0)
   };
 }
-
-function _generateNewContext(playerId) {
-  return {
-    initialized: false,
-    resistanceMatrix: [],
-    matrix: [],
-    logs: [],
-    width: 0,
-    height: 0,
-    VISITED: 1,
-
-    visit: function visit(x, y) {
-      var idx = x + this.width * y;
-      this.matrix[idx] = this.VISITED;
-
-      if (!this.resistanceMatrix[idx]) {
-        this.resistanceMatrix[idx] = 1;
-      }
-    },
-    visited: function visited(x, y) {
-      if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
-        return true;
-      }
-      var idx = x + this.width * y;
-      return this.matrix[idx] === this.VISITED;
-    },
-    getResistance: function getResistance(x, y) {
-      if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
-        return 9999999;
-      }
-      var idx = x + this.width * y;
-      return this.resistanceMatrix[idx] === undefined ? 0 : this.resistanceMatrix[idx];
-    },
-    initialize: function initialize(maze, playerPos) {
-      if (!this.initialized) {
-        this.width = maze.width;
-        this.height = maze.height;
-        this.visit(playerPos.x, playerPos.y);
-        this.initialized = true;
-
-        var size = this.width * this.height;
-        for (var i = 0; i < size; i++) {
-          this.resistanceMatrix[i] = 0;
-        }
-      }
-    },
-    explore: function explore(playerPos, displacement) {
-      this.visit(playerPos.x + displacement.x, playerPos.y + displacement.y);
-    },
-    print: function print(n) {
-      console.log("EXPLORED:" + n);
-      for (var y = 0; y < this.height; y++) {
-        var row = "";
-        for (var x = 0; x < this.width; x++) {
-          row += this.visited(x, y) ? "1" : "0";
-        }
-        console.log(row);
-      }
-    },
-
-    _addLog: function _addLog(details) {
-      this.logs.push(details);
-    }
-  };
-}
-
-var MOV_VALID = 1;
-var MOV_LESS_VALID = 2;
-var TO_LEFT = "left";
-var TO_RIGHT = "right";
-var TO_TOP = "up";
-var TO_BOTTOM = "down";
-
-function _calcNextMovement(playerId, maze, playerPos, steps) {
-
-  // Default mov
-  var nextMov = TO_RIGHT;
-
-  var context = _getPlayerContext(playerId);
-  try {
-
-    // Initialize the context
-    context.initialize(maze, playerPos);
-
-    // Precalculate next positions, four possible movements
-    var movements = _createAllMovements(playerPos);
-
-    // 1. Avoid silly movements
-    _avoidWalls(movements, context, maze);
-
-    // 2. Survive, so avoid ghosts
-    _avoidGhostMovs(movements, context, maze);
-
-    _propagateResistance(context.resistanceMatrix, maze);
-
-    // 3. Evaluate the most promising next movement
-    _evalRemainingMovs(movements, context, maze, playerPos);
-
-    if (movements.length) {
-      nextMov = _getMostPromising(movements, context, steps);
-    } else {
-      context._addLog({
-        nextMov: nextMov,
-        how: 'Default, ghost threads in all movs',
-        steps: steps
-      });
-    }
-  } catch (e) {
-    context._addLog({
-      nextMov: nextMov,
-      how: 'EXCEPTION: ' + e.message,
-      steps: steps
-    });
-  }
-
-  // Updates
-  context.explore(playerPos, _directionToVector(nextMov));
-
-  return nextMov;
-}
-
-exports.calcNextMovement = _calcNextMovement;
 exports.flushDebugInfo = _flushDebugInfo;
 
 /**
@@ -168,6 +102,22 @@ function _createAllMovements(playerPos) {
     valid: true,
     pos: { x: playerPos.x, y: playerPos.y + 1 }
   }];
+}
+
+/**
+ * @desc Returns a mov if it is the mov to the final exit.
+ */
+function _getExit(movements, context, maze) {
+  var exitMov = undefined;
+
+  movements.map(function (mov) {
+    if (maze.isExit(mov.pos.x, mov.pos.y)) {
+      exitMov = mov.dir;
+    }
+    return mov;
+  });
+
+  return exitMov;
 }
 
 /**
@@ -224,6 +174,11 @@ function _evalRemainingMovs(movements, context, maze, playerPos) {
   movements.map(function (mov) {
     if (mov.valid) {
       mov.resistance = context.getResistance(mov.pos.x, mov.pos.y);
+
+      // // Try to avoid bouncings...
+      // if (context.isOpposite(mov.dir)) {
+      //   mov.resistance += config.OPPOSITE_RESISTANCE;
+      // }
     }
     return mov;
   });
@@ -248,7 +203,7 @@ function _propagateResistance(resistanceMatrix, maze) {
         resistanceMatrix[idx] = 4; // as if it was surrounded by 4 walls
       } else if (cellValue === maze.GOAL) {
         // Goal has the less resistance!
-        resistanceMatrix[idx] = -0.5;
+        resistanceMatrix[idx] = config.OBJECTIVE_RESISTANCE;
       } else {
         // Ok, set normal resistance
         resistanceMatrix[idx] = _calcNumAdjacentWalls(maze, idx);
@@ -261,9 +216,9 @@ function _propagateResistance(resistanceMatrix, maze) {
   // 2. Propagate:
   mazeMatrix.forEach(function (cellValue, idx) {
     if (cellValue && cellValue !== maze.WALL) {
-      if (resistanceMatrix[idx] > 1) {
-        _propagateReistanceToAdjacents(resistanceMatrix, maze, idx);
-      }
+      //if (resistanceMatrix[idx] > 1) {
+      _propagateReistanceToAdjacents(resistanceMatrix, maze, idx);
+      //}
     }
   });
 }
@@ -280,19 +235,40 @@ function _calcAdjacentWalls(maze, idx) {
       topIdx = idx - width,
       bottomIdx = idx + width;
 
-  var walls = {};
+  var walls = {},
+      count = 0;
 
   if (0 <= leftIdx && matrix[leftIdx] === maze.WALL) {
     walls.left = 1;
+    count++;
   }
   if (rightIdx < size && matrix[rightIdx] === maze.WALL) {
     walls.right = 1;
+    count++;
   }
   if (0 <= topIdx && matrix[topIdx] === maze.WALL) {
     walls.top = 1;
+    count++;
   }
   if (bottomIdx < size && matrix[bottomIdx] === maze.WALL) {
     walls.bottom = 1;
+    count++;
+  }
+
+  walls.count = count;
+
+  if (count > 2) {
+    walls.isHole = true;
+  } else if (count === 2) {
+    if (walls.left && walls.right || walls.top && walls.bottom) {
+      walls.isFunnel = true;
+    } else {
+      walls.isCorner = true;
+    }
+  } else if (count === 1) {
+    walls.oneWall = true;
+  } else {
+    walls.isIsolated = true;
   }
 
   return walls;
@@ -303,20 +279,12 @@ function _calcAdjacentWalls(maze, idx) {
  */
 function _calcNumAdjacentWalls(maze, idx) {
   var walls = _calcAdjacentWalls(maze, idx);
-  var numWalls = 0;
-
-  numWalls += walls.left ? 1 : 0;
-  numWalls += walls.right ? 1 : 0;
-  numWalls += walls.top ? 1 : 0;
-  numWalls += walls.bottom ? 1 : 0;
 
   // Three or four walls (?) are a must-avoid corner
-  if (numWalls > 2) {
-    return numWalls;
+  if (walls.isHole) {
+    return walls.count;
   }
-
-  // Simple corners  
-  if ((walls.left || walls.right) && (walls.top || walls.bottom)) {
+  if (walls.isCorner) {
     return 2;
   }
 
@@ -324,9 +292,26 @@ function _calcNumAdjacentWalls(maze, idx) {
   return 0;
 }
 
+function _getAverageResistance(resistanceMatrix, maze, idx) {
+  var c = maze.getCoords(idx);
+
+  var idxs = [maze.getIdx(c.x - 1, c.y), maze.getIdx(c.x - 1, c.y - 1), maze.getIdx(c.x, c.y - 1), maze.getIdx(c.x + 1, c.y - 1), maze.getIdx(c.x + 1, c.y), maze.getIdx(c.x + 1, c.y + 1), maze.getIdx(c.x, c.y + 1), maze.getIdx(c.x - 1, c.y + 1)];
+
+  var sum = 0;
+  idxs.forEach(function (i) {
+    if (i !== undefined) {
+      var r = resistanceMatrix[i];
+      if (r !== undefined) {
+        sum += r;
+      }
+    }
+  });
+
+  return sum / 8;
+}
+
 function _propagateReistanceToAdjacents(resistanceMatrix, maze, idx) {
-  var walls = _calcAdjacentWalls(maze, idx),
-      resistance = resistanceMatrix[idx];
+  var walls = _calcAdjacentWalls(maze, idx);
 
   var matrix = maze.matrix,
       size = maze.size,
@@ -336,17 +321,18 @@ function _propagateReistanceToAdjacents(resistanceMatrix, maze, idx) {
       topIdx = idx - width,
       bottomIdx = idx + width;
 
-  if (0 <= leftIdx && matrix[leftIdx] && matrix[leftIdx] !== maze.WALL && resistanceMatrix[leftIdx] >= 0) {
-    resistanceMatrix[leftIdx]++;
-  }
-  if (rightIdx < size && matrix[rightIdx] && matrix[rightIdx] !== maze.WALL && resistanceMatrix[rightIdx] >= 0) {
-    resistanceMatrix[rightIdx]++;
-  }
-  if (0 <= topIdx && matrix[topIdx] && matrix[topIdx] !== maze.WALL && resistanceMatrix[topIdx] >= 0) {
-    resistanceMatrix[topIdx]++;
-  }
-  if (bottomIdx < size && matrix[bottomIdx] && matrix[bottomIdx] !== maze.WALL && resistanceMatrix[bottomIdx] >= 0) {
-    resistanceMatrix[bottomIdx]++;
+  // Leave funnels clear
+  if (!walls.isFunnel) {
+    if (walls.isCorner) {
+      // Increment!
+      resistanceMatrix[idx]++;
+    } else {
+      // Average
+      resistanceMatrix[idx] = _getAverageResistance(resistanceMatrix, maze, idx);
+    }
+  } else {
+    // Decrement!
+    resistanceMatrix[idx] += config.FUNNEL_RESISTANCE;
   }
 }
 
@@ -354,47 +340,40 @@ function _propagateReistanceToAdjacents(resistanceMatrix, maze, idx) {
  * @desc Select best evaluated movement among valid ones
  */
 function _getMostPromising(movements, context, steps) {
-  var maxValue = 0,
-      dir = TO_LEFT;
+  var minValue = 9999999,
+      dir = undefined,
+      secondOptionDir = TO_TOP;
 
   movements.forEach(function (mov) {
     if (mov.valid) {
 
       // The less the resistance, the better
-      var value = 1 / (1 + mov.resistance);
+      var value = mov.resistance;
 
-      if (value > maxValue) {
-        maxValue = value;
-        dir = mov.dir;
+      if (context.isOpposite(mov.dir)) {
+        secondOptionDir = mov.dir;
+      } else {
+        if (value <= minValue) {
+          minValue = value;
+          dir = mov.dir;
+        }
       }
     }
   });
 
-  context._addLog({
+  // If no mov found, try with the opposite:
+  if (dir === undefined) {
+    dir = secondOptionDir;
+  }
+
+  context.addLog({
     nextMov: dir,
-    how: 'Most promising, value: ' + maxValue.toFixed(2),
+    how: 'Most promising, value: ' + minValue.toFixed(2),
     steps: steps
   });
 
   return dir;
 }
-
-// function _toDirections(movements) {
-//   let dirs = [];
-
-//   movements.forEach((mov) => {
-//     if (mov.valid) {
-//       dirs.push(mov.dir);
-//     }
-//   });
-
-//   return dirs;
-// }
-
-// function _getRandomValue(list) {
-//   const idx = Math.floor(Math.random() * (list.length - 0.5));
-//   return list.length ? list[idx] : undefined;
-// }
 
 function _directionToVector(mov) {
   if (mov === TO_LEFT) {

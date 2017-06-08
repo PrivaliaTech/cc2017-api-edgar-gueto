@@ -19,7 +19,9 @@ function _onMove(req, res, next) {
   res.status(200);
   res.contentType = 'json';
 
-  let moveResult = "right";
+  const randMovs=["left", "right", "up", "down"];
+  let moveResult = randMovs[Math.floor(3.99 * Math.random())];
+
   try {
     const params = req.body || {};
 

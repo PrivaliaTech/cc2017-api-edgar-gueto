@@ -21,11 +21,13 @@ function _onMove(req, res, next) {
   res.status(200);
   res.contentType = 'json';
 
-  var moveResult = "right";
+  var randMovs = ["left", "right", "up", "down"];
+  var moveResult = randMovs[Math.floor(3.99 * Math.random())];
+
   try {
     var params = req.body || {};
 
-    params.game = params.game || {};
+    //params.game = params.game || {};
     params.player = params.player || {};
     params.maze = params.maze || {};
     params.ghosts = params.ghosts || {};
