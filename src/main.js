@@ -2,23 +2,18 @@ const restify = require('restify');
 const mazeBot = require('./mazeBot');
 
 const server = restify.createServer();
-
-
 server.use(restify.bodyParser());
-
 
 function _onName(req, res, next) {
   res.status(200);
   res.contentType = 'json';
 
-  const name = "egueto-ext";// + (new Date()).getTime();
   const response = {
-    name: name,
+    name: "egueto-ext",
     email: "edgar.gueto@ext.privalia.com"
   };
   res.send(response);
 }
-
 
 function _onMove(req, res, next) {
   res.status(200);
@@ -28,7 +23,7 @@ function _onMove(req, res, next) {
   try {
     const params = req.body || {};
 
-    params.game = params.game || {};
+    //params.game = params.game || {};
     params.player = params.player || {};
     params.maze = params.maze || {};
     params.ghosts = params.ghosts || {};

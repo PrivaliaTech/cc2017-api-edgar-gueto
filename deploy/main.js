@@ -4,16 +4,14 @@ var restify = require('restify');
 var mazeBot = require('./mazeBot');
 
 var server = restify.createServer();
-
 server.use(restify.bodyParser());
 
 function _onName(req, res, next) {
   res.status(200);
   res.contentType = 'json';
 
-  var name = "egueto-ext"; // + (new Date()).getTime();
   var response = {
-    name: name,
+    name: "egueto-ext",
     email: "edgar.gueto@ext.privalia.com"
   };
   res.send(response);

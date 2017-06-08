@@ -1,4 +1,20 @@
-const _contexts = {};
+let contextMgr = {};
+
+(function (mgr) {
+  const _contexts = {};
+
+  mgr.getContext = function (playerId) {
+    if (!_contexts[playerId]) {
+      _contexts[playerId] = _generateNewContext(playerId);
+    }
+    return _contexts[playerId];
+  };
+})(contextMgr);
+
+
+
+
+
 
 function _getPlayerContext(playerId) {
   if (!_contexts[playerId]) {
@@ -7,20 +23,7 @@ function _getPlayerContext(playerId) {
   return _contexts[playerId];
 }
 
-function _flushDebugInfo(playerId) {
-  let context = _getPlayerContext(playerId),
-    logs = context.logs.slice(0);
 
-  console.log("_flushDebugInfo::log", context.logs);
-
-  // reset log
-  context.logs = [];
-
-  return {
-    logs: logs,
-    resistMatrix: context.resistanceMatrix.slice(0)
-  };
-}
 
 function _generateNewContext(playerId) {
   return {
@@ -145,6 +148,21 @@ function _calcNextMovement(playerId, maze, playerPos, steps) {
 }
 
 exports.calcNextMovement = _calcNextMovement;
+
+function _flushDebugInfo(playerId) {
+  let context = _getPlayerContext(playerId),
+    logs = context.logs.slice(0);
+
+  console.log("_flushDebugInfo::log", context.logs);
+
+  // reset log
+  context.logs = [];
+
+  return {
+    logs: logs,
+    resistMatrix: context.resistanceMatrix.slice(0)
+  };
+}
 exports.flushDebugInfo = _flushDebugInfo;
 
 
